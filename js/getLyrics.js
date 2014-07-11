@@ -6,6 +6,7 @@ Parse.initialize("xVGwbfMCJHMeWgDDF8F7kjl82tqI7nISHMEkST9p", "dhKnIYqkzvCFC7mZ5q
 
 // Set global variables to help "block" non-blocking calls
 var allLines = []; 
+var currentArtist;
 
 function runArtistScript(artistName) {
 	checkForNewArtist(formatArtistName(artistName));
@@ -18,6 +19,7 @@ function checkForNewArtist(artistName, callback) {
 	Parse.Cloud.run('checkForNewArtist', { artist: artistName}, {
 		success: function(value) {
 			if (value === true) {
+				currentArtist = artistName;
 				findArtist(artistName);
 			} else {
 				console.log("Artist " + artistName + " is already in the database");
@@ -98,9 +100,8 @@ function formatArtistName(artistName) {
 // This function will take array of lyric lines and create hashmaps for each word with a counter in JSON
 // Final output will be JSON array
 function createMapOneDegree(linkArray) {
-	console.log("Creating map");
-	// Create empty array to hold all JSON data
-	var JSONwords = {"allWords" : []};
+	// Create empty JSON struct with artist name to hold all JSON data
+	var JSONwords = {"artist" : currentArtist,"allWords" : []};
 
 	// Go through each lyric and break each word apart into seperate indexes
 	for (var i = 0; i < linkArray.length; i++) {
@@ -139,9 +140,14 @@ function createMapOneDegree(linkArray) {
 			}
 		}
 	}
-	for (var q = 0; q <2; q++) {
-		console.log(JSON.stringify(JSONwords.allWords[q], null, 2));
-	}
+	Parse.Cloud.run('sendMapToDatabase', JSONwords, {
+		success: function(value) {
+			console.log(value);
+		},
+		error: function(error) {
+			console.log("Error in Parse: " + error);
+		}
+	});
 }
 
 

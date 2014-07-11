@@ -19,3 +19,13 @@ Parse.Cloud.define("checkForNewArtist", function(request, response) {
 		}
 	});
 });
+
+Parse.Cloud.define("sendMapToDatabase", function(request, response) {
+	// Remember to put each artist in database
+	var artist = Parse.Object.extend("artists");
+	var artistName = request.artist;
+	console.log("artistName");
+	//artist.set("artist", )
+	//var query = new Parse.Query("artists");
+
+});
