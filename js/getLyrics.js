@@ -5,7 +5,7 @@ var Parse = require('parse').Parse;
 Parse.initialize("xVGwbfMCJHMeWgDDF8F7kjl82tqI7nISHMEkST9p", "dhKnIYqkzvCFC7mZ5qCCLFCqJNDACWE3UXph7tM4");
 
 // Set global variables to help "block" non-blocking calls
-
+var allLines = []; 
 
 function runArtistScript(artistName) {
 	checkForNewArtist(formatArtistName(artistName));
@@ -49,30 +49,32 @@ function findArtistLinkFromHTML(body) {
 	for (var i = 0; i < linksObjects.length; i++) {
 		links.push(linksObjects[i].attribs.href);
 	}
-	//for (var i = 0; i < linksObjects.length; i++) {
-		goToLink(linksObjects[0].attribs.href);
-		console.log("Done with this link");
-	//}
+	var body = [];
+	goToLinks(links, body);
 }
 
 // Go to link for song to scrape lyrics
-function goToLink(link) {
-	console.log("Go to Link");
-	request(link, function(error, response, body) {
-		if (!error && response.statusCode == 200) {
-			scrapeLyrics(body); // Send the body to be parsed
-		} else {
-			console.log("Something went wrong accessing song link");
+function goToLinks(links, bodyArray) {
+	if (links.length > 0) {
+		request(links.pop(), function(error, response, body) {
+			if (!error && response.statusCode == 200) {
+				bodyArray.push(body);
+				goToLinks(links, bodyArray);
+			} else {
+				console.log("Something went wrong accessing song link");
+			}
+		});
+	} else {
+		for (var t = 0; t < bodyArray.length; t++) {
+			scrapeLyrics(bodyArray[t]);
 		}
-	});
+		createMapOneDegree(allLines); // Now that we've concatenated all lines, create a map out of these
+	}
 }
 
 // Grab lyrics for a song 
 function scrapeLyrics(body) {
-	console.log("Scrape lyrics");
 	$ = cheerio.load(body);
-	// lines will hold all applicable 
-	var lines = [];
 	var lyricObject = $(".lyrics > p").find("a");
 
 	// Parse through each lyric and it's children
@@ -82,11 +84,10 @@ function scrapeLyrics(body) {
 
 				// Remove extraneous characters and ensure that line is not blank, then add to array
 				var line = lyricObject[j].children[k].data.replace(/\[.*\]|\"|\,|\r?\n|\r/g, "").toLowerCase();
-				if (!(line === "")) lines.push(line);
+				if (!(line === "")) allLines.push(line);
 			}
 		}
 	}
-	createMapOneDegree(lines);
 }
 
 // This function will return an artists name down to a form in which urls can take
@@ -138,7 +139,7 @@ function createMapOneDegree(linkArray) {
 			}
 		}
 	}
-	for (var q = 0; q <3; q++) {
+	for (var q = 0; q <2; q++) {
 		console.log(JSON.stringify(JSONwords.allWords[q], null, 2));
 	}
 }
