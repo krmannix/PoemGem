@@ -1,14 +1,38 @@
 // Initialize html parser and HTTP request modules
 var request = require('request');
 var cheerio = require('cheerio');
+var Parse = require('parse').Parse;
+Parse.initialize("xVGwbfMCJHMeWgDDF8F7kjl82tqI7nISHMEkST9p", "dhKnIYqkzvCFC7mZ5qCCLFCqJNDACWE3UXph7tM4");
+
+function runArtistScript(artistName) {
+	checkForNewArtist(formatArtistName(artistName));
+}
+
+// Send a request to DB to check if artist has already been serviced. This is so we don't unfairly
+// favor certain artists if their songs have already been uploaded.
+// This will call the findArtist() function
+function checkForNewArtist(artistName, callback) {
+	Parse.Cloud.run('checkForNewArtist', { artist: artistName}, {
+		success: function(value) {
+			if (value === true) {
+				findArtist(artistName);
+			} else {
+				console.log("Artist " + artistName + " is already in the database");
+			}
+		},
+		error: function(error) 
+		{
+			console.log(error);
+		}
+	});
+}
 
 // Return body of artist search from artist name from Rap Genius
 function findArtist(artistName) {
 	request('http://rapgenius.com/search?q=' + formatArtistName(artistName), function (error, response, body) {
-		console.log("Link: http://rapgenius.com/search?q=" + formatArtistName(artistName));
 	  if (!error && response.statusCode == 200) {
-
-	    findArtistLinkFromHTML(body); // Send the body to be parsed
+	  		console.log("New");
+	  		findArtistLinkFromHTML(body); // Send the body to be parsed
 	  } else {
 	  	console.log("Something went wrong");
 	  }
@@ -55,22 +79,47 @@ function scrapeLyrics(body) {
 			}
 		}
 	}
-	createMap(lines);
+	createMapOneDegree(lines);
 }
 
 // This function will return an artists name down to a form in which urls can take
 function formatArtistName(artistName) {
-	return artistName.trim().replace(/'/g, "%27").replace(/\s{2,}/g, "+").toLowerCase();
+	return artistName.trim().replace(/'/g, "%27").replace(/\s{2,}/g, " ").replace(" ", "+").toLowerCase();
 }
 
-function createMap(linkArray) {
-
-}
-
-// Send a request to DB to check if artist has already been serviced. This is so we don't unfairly
-// favor certain artists if their songs have already been uploaded
-function checkForNewArtist(artistName) {
-	
+function createMapOneDegree(linkArray) {
+	var JSONwords = [];
+	for (var i = 0; i < linkArray.length; i++) {
+		var wordsInLine = linkArray[i].split(" ");
+		for (var k = 0; k < wordsInLine.length - 1; k++) { // Go through each word in line
+			if (JSONwords.length == 0) { // Initialize wordsInLine with first word
+				JSONwords.push({"currentWord" : wordsInLine[k], "nextWords": []});
+			} 
+			var doesCurrentWordAlreadyExist = false;
+			for (var j = 0; j < JSONwords.length; j++) { // Go through each word already seen in lyrics 
+				if (JSONwords[j].currentWord === wordsInLine[k]) {
+					doesCurrentWordAlreadyExist = true;
+					var doesNextWordAlreadyExist = false;
+					for (next in JSONwords[j].nextWords) {
+						if (next.word === wordsInLine[k+1]) {
+							doesNextWordAlreadyExist = true;
+							next.count = Number(next.count) + 1; // If already exists, increment number
+							break;
+						}
+					}
+					if (!doesNextWordAlreadyExist) {
+						JSONwords[j].nextWords.push({ "word": wordsInLine[k+1]});
+						// push to JSONwords.nextWords
+					}
+					break;
+				}
+			}
+			if (!doesCurrentWordAlreadyExist) {
+				var nextWords.push({"word": wordsInLine[k+1]});
+				JSONwords.push({"currentWord" : wordsInLine[k], "nextWords": nextWords});
+			}
+		}
+	}
 }
 
 
@@ -80,7 +129,7 @@ function checkForNewArtist(artistName) {
  *
  *===================*/
 
-findArtist("Lil Wayne");
+runArtistScript("Lil Wayne");
 
 
 
