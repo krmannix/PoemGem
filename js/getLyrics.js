@@ -31,7 +31,6 @@ function checkForNewArtist(artistName, callback) {
 function findArtist(artistName) {
 	request('http://rapgenius.com/search?q=' + formatArtistName(artistName), function (error, response, body) {
 	  if (!error && response.statusCode == 200) {
-	  		console.log("New");
 	  		findArtistLinkFromHTML(body); // Send the body to be parsed
 	  } else {
 	  	console.log("Something went wrong");
@@ -87,35 +86,45 @@ function formatArtistName(artistName) {
 	return artistName.trim().replace(/'/g, "%27").replace(/\s{2,}/g, " ").replace(" ", "+").toLowerCase();
 }
 
+// This function will take array of lyric lines and create hashmaps for each word with a counter in JSON
+// Final output will be JSON array
 function createMapOneDegree(linkArray) {
+	// Create empty array to hold all JSON data
 	var JSONwords = [];
+
+	// Go through each lyric and break each word apart into seperate indexes
 	for (var i = 0; i < linkArray.length; i++) {
 		var wordsInLine = linkArray[i].split(" ");
-		for (var k = 0; k < wordsInLine.length - 1; k++) { // Go through each word in line
+		for (var k = 0; k < wordsInLine.length - 1; k++) { // Go through each word in thisline, except for the last one (since it has no next word)
+
 			if (JSONwords.length == 0) { // Initialize wordsInLine with first word
 				JSONwords.push({"currentWord" : wordsInLine[k], "nextWords": []});
 			} 
+
 			var doesCurrentWordAlreadyExist = false;
 			for (var j = 0; j < JSONwords.length; j++) { // Go through each word already seen in lyrics 
-				if (JSONwords[j].currentWord === wordsInLine[k]) {
+
+				if (JSONwords[j].currentWord === wordsInLine[k]) { // Look to see if we already have that word stored in the JSONwords array
 					doesCurrentWordAlreadyExist = true;
-					var doesNextWordAlreadyExist = false;
+					var doesNextWordAlreadyExist = false; // Now that the word already exists in JSONwords, see if the next word already exists as well
 					for (next in JSONwords[j].nextWords) {
-						if (next.word === wordsInLine[k+1]) {
-							doesNextWordAlreadyExist = true;
-							next.count = Number(next.count) + 1; // If already exists, increment number
+						if (JSONwords[j].nextWords[next].word === wordsInLine[k+1]) {
+							doesNextWordAlreadyExist = true; 
+							JSONwords[j].nextWords[next].count = Number(JSONwords[j].nextWords[next].count) + 1; // If already exists, increment number
 							break;
 						}
 					}
-					if (!doesNextWordAlreadyExist) {
-						JSONwords[j].nextWords.push({ "word": wordsInLine[k+1]});
+					if (!doesNextWordAlreadyExist) { // If this is a new next word for the current word in JSONwords, initialize and push it
+						JSONwords[j].nextWords.push({ "word": wordsInLine[k+1], "count": 1});
 						// push to JSONwords.nextWords
 					}
 					break;
 				}
 			}
+			// If this word is totally new to the JSONwords array, create it and initialize array for it's next words with current next word
 			if (!doesCurrentWordAlreadyExist) {
-				var nextWords.push({"word": wordsInLine[k+1]});
+				var nextWords = [];
+				nextWords.push({"word": wordsInLine[k+1], "count" : 1});
 				JSONwords.push({"currentWord" : wordsInLine[k], "nextWords": nextWords});
 			}
 		}
