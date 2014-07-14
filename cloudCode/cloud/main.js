@@ -1,10 +1,3 @@
-
-// Use Parse.Cloud.define to define as many cloud functions as you want.
-// For example:
-Parse.Cloud.define("hello", function(request, response) {
-  response.success("Hello world!");
-});
-
 Parse.Cloud.define("checkForNewArtist", function(request, response) {
 	var query = new Parse.Query("artists");
 	query.equalTo("artist", request.params.artist);
@@ -19,7 +12,7 @@ Parse.Cloud.define("checkForNewArtist", function(request, response) {
 	});
 });
 
-function addContentToDB(currentword, nextword, count) {
+function addContentToDB(currentword, nextword, count, response) {
 	var Word = Parse.Object.extend("rapWord1D"); // In future, have reqest with this value
 	var query = new Parse.Query("rapWord1D");
 	query.equalTo("word", currentword);
@@ -41,9 +34,17 @@ function addContentToDB(currentword, nextword, count) {
 			wordInDB.save(null, {
 				success: function() {
 					console.log("This object got saved: " + currentword + " with " + nextword);
+					if (response != null) {
+						console.log("Last item, say response is success");
+						response.success("Uploaded all programs.");
+					}
 				},
 				error: function() {
 					console.log("Theres an error.");
+					if (response != null) {
+						console.log("Should tell response there's an error");
+						response.error("Uh-oh. Look into this.");
+					}
 				}
 			});
 		},
@@ -75,15 +76,20 @@ Parse.Cloud.define("sendMapToDatabase", function(request, response) {
 				artist.set("words", wordCount);
 				artist.save(null, {
 					success: function() {
-						//response.success("We updated Artist database.");
-						for (var i = 0; i < 2; i++) {
+						// Go through all word -> nextword combinations, and on last one submit response to be successful. 
+						for (var i = 0; i < body.allWords.length; i++) {
 							for (var j = 0; j < body.allWords[i].nextWords.length; j++) {
-								addContentToDB(body.allWords[i].currentWord, body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count);
+								if (i === body.allWords.length - 1 && j === body.allWords[i].nextWords.length - 1) {
+									addContentToDB(body.allWords[i].currentWord, 
+										body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count, response);
+								} else {
+									addContentToDB(body.allWords[i].currentWord, 
+										body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count, null);
+								}
 							}
 						}
-					}, 
+					},
 					error: function() {
-						//response.error(error.message);
 					}
 				});
 			} else {
@@ -94,15 +100,20 @@ Parse.Cloud.define("sendMapToDatabase", function(request, response) {
 				artist.set("artist", artistName);
 				artist.save(null, {
 					success: function() {
-						for (var i = 0; i < 2; i++) {
+						// Go through all word -> nextword combinations, and on last one submit response to be successful. 
+						for (var i = 0; i < body.allWords.length; i++) {
 							for (var j = 0; j < body.allWords[i].nextWords.length; j++) {
-								addContentToDB(body.allWords[i].currentWord, body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count);
+								if (i === body.allWords.length - 1 && j === body.allWords[i].nextWords.length - 1) {
+									addContentToDB(body.allWords[i].currentWord, 
+										body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count, response);
+								} else {
+									addContentToDB(body.allWords[i].currentWord, 
+										body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count, null);
+								}
 							}
 						}
-						//response.success("We updated Artist database.");
 					},
 					error: function() {
-						//response.error(error.message);
 					}
 				});
 			}
@@ -111,7 +122,5 @@ Parse.Cloud.define("sendMapToDatabase", function(request, response) {
 		error: function(error) {
 			response.error(error.message);
 		}
-	});
-	//for (var i = 0; i < body.allWords.length; i++) {
-	
+	});	
 });
