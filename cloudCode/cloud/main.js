@@ -25,6 +25,7 @@ function addContentToDB(currentword, nextword, count) {
 	query.equalTo("word", currentword);
 	query.equalTo("nextword", nextword);
 	var wordInDB;
+	console.log("Current Word: " + currentword + " next word: " + nextword);
 	query.find({
 		success: function(results) {
 			if (results.length > 0) {
@@ -37,11 +38,17 @@ function addContentToDB(currentword, nextword, count) {
 				wordInDB.set("nextword", nextword);
 				wordInDB.set("count", count);
 			}
-			wordInDB.save();
-		//	response.success();
+			wordInDB.save(null, {
+				success: function() {
+					console.log("This object got saved: " + currentword + " with " + nextword);
+				},
+				error: function() {
+					console.log("Theres an error.");
+				}
+			});
 		},
 		error: function(error) {
-			response.error(error);
+			console.log(error.message);
 		}
 	});
 }
@@ -66,24 +73,45 @@ Parse.Cloud.define("sendMapToDatabase", function(request, response) {
 					wordCount += body.allWords.length;
 				}
 				artist.set("words", wordCount);
+				artist.save(null, {
+					success: function() {
+						//response.success("We updated Artist database.");
+						for (var i = 0; i < 2; i++) {
+							for (var j = 0; j < body.allWords[i].nextWords.length; j++) {
+								addContentToDB(body.allWords[i].currentWord, body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count);
+							}
+						}
+					}, 
+					error: function() {
+						//response.error(error.message);
+					}
+				});
 			} else {
 				// Create new artist row if artist is not in database
 				var Artist = Parse.Object.extend("artists");
 				var artist = new Artist();
 				artist.set("words", body.allWords.length);
 				artist.set("artist", artistName);
+				artist.save(null, {
+					success: function() {
+						for (var i = 0; i < 2; i++) {
+							for (var j = 0; j < body.allWords[i].nextWords.length; j++) {
+								addContentToDB(body.allWords[i].currentWord, body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count);
+							}
+						}
+						//response.success("We updated Artist database.");
+					},
+					error: function() {
+						//response.error(error.message);
+					}
+				});
 			}
-			artist.save();
-			response.success(artist);
+			
 		},
 		error: function(error) {
-			response.error(error);
+			response.error(error.message);
 		}
 	});
 	//for (var i = 0; i < body.allWords.length; i++) {
-	for (var i = 0; i < 2; i++) {
-		for (var j = 0; j < body.allWords[i].nextWords.length; j++) {
-			addContentToDB(body.allWords[i].currentWord, body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count);
-		}
-	}
+	
 });
