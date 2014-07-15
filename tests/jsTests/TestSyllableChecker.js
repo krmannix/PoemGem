@@ -3,6 +3,7 @@ var querystring = require('querystring');
 var request = require('request');
 
 // We'll use wordcalc.com
+// http://stackoverflow.com/questions/6158933/how-to-make-an-http-post-request-in-node-js
 var data = querystring.stringify({
 
 });
@@ -16,8 +17,14 @@ headers: {
 		'Content-Length': data.length
 	}
 };
-//'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
-'Accept-Encoding: gzip,deflate,sdch
 
-http://www.wordcalc.com/index.php
+var post_request = http.request(options, function(res) {
+	res.setEncoding('utf8');
+	res.on('data', function (chunk) {
+          console.log('Response: ' + chunk);
+    });
+});
 
+// post the data
+ post_req.write(post_data);
+ post_req.end();
