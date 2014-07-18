@@ -4,42 +4,6 @@ var cheerio = require('cheerio');
 var http = require('http');
 var body = "";
 
-// We'll use wordcalc.com
-// http://stackoverflow.com/questions/6158933/how-to-make-an-http-post-request-in-node-js
-var data = querystring.stringify({
-	text: 'actually',
-	optionSyllableCount: 'on'
-});
-
-var options = {
-host: 'www.wordcalc.com',
-path: '/index.php',
-method: 'POST',
-headers: {
-		'Content-Type': 'application/x-www-form-urlencoded',
-		'Content-Length': data.length
-	}
-};
-
-var post_request = http.request(options, function(res) {
-	res.setEncoding('utf8');
-	res.on('data', function (chunk) {
-          body += chunk;
-    });
-
-    res.on("close", function() {
-	 	continueAfterRequest(body);
- 	});
-
- 	res.on('end', function(){
- 		continueAfterRequest(body);
-    });
-});
-
-// post the data
- post_request.write(data);
- post_request.end();
-
  function parseHTML(bodyIn) {
  	var numSyllables = 0;
  	$ = cheerio.load(bodyIn);
@@ -54,7 +18,63 @@ var post_request = http.request(options, function(res) {
 
  function continueAfterRequest(bodyIn) {
  	var numSyl = parseHTML(bodyIn);
- 	console.log("sylCheck: " + sylCheck.getSyllables("actually"));
- 	console.log("Test: " + numSyl);
+ 	return numSyl;
  }
+
+ var runTest = function runTest(wordIn) {
+
+ 	// Make a promise so we can chain the result in the main Test module
+ 	return new Promise(function(resolve, reject) {
+ 		// We'll use wordcalc.com
+		// http://stackoverflow.com/questions/6158933/how-to-make-an-http-post-request-in-node-js
+		var data = querystring.stringify({
+			text: wordIn.trim(),
+			optionSyllableCount: 'on'
+		});
+
+		var options = {
+		host: 'www.wordcalc.com',
+		path: '/index.php',
+		method: 'POST',
+		headers: {
+				'Content-Type': 'application/x-www-form-urlencoded',
+				'Content-Length': data.length
+			}
+		};
+
+		var post_request = http.request(options, function(res) {
+			res.setEncoding('utf8');
+			res.on('data', function (chunk) {
+		          body += chunk;
+		    });
+
+		    res.on("close", function() {
+		    	if (res.statusCode === 200) {
+		 			resolve(continueAfterRequest(body));
+		 		} else {
+		 			reject(Error(res.statusCode));
+		 		}
+		 	});
+
+		 	res.on('end', function(){	
+		 		if (res.statusCode === 200) {
+		 			resolve(continueAfterRequest(body));
+		 		} else {
+		 			reject(Error(res.statusCode));
+		 		}
+		    });
+		});
+
+		// post the data
+		 post_request.write(data);
+		 post_request.end();
+
+ 	});
+}
+
+runTest("actually").then(function(response) {
+	console.log("Response: " + response);
+});
+
+module.exports.runTest = runTest;
 

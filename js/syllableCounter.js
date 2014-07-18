@@ -45,7 +45,7 @@ function countDiphthongVowels(wordIn) {
 	var sylSubtract = 0;
 	// List compiled from Wikipedia
 	if (/[a][i][r]/.test(wordIn)) sylSubtract++;
-	if ((/[u][r][e]/).test)wordIn)) sylSubtract++;
+	if ((/[u][r][e]/).test(wordIn)) sylSubtract++;
 	if (wordIn.test("ewe")) sylSubtract++;
 	if (wordIn.test("are")) sylSubtract++;
 	if (wordIn.test("ere")) sylSubtract++;
