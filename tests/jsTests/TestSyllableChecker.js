@@ -1,11 +1,14 @@
-var sylCheck = require("../../js/syllableCounter.js");
+var sylCheck = require("../../js/syllableCounter.js") ;
 var querystring = require('querystring');
-var request = require('request');
+var cheerio = require('cheerio');
+var http = require('http');
+var body = "";
 
 // We'll use wordcalc.com
 // http://stackoverflow.com/questions/6158933/how-to-make-an-http-post-request-in-node-js
 var data = querystring.stringify({
-
+	text: 'actually',
+	optionSyllableCount: 'on'
 });
 
 var options = {
@@ -21,10 +24,37 @@ headers: {
 var post_request = http.request(options, function(res) {
 	res.setEncoding('utf8');
 	res.on('data', function (chunk) {
-          console.log('Response: ' + chunk);
+          body += chunk;
+    });
+
+    res.on("close", function() {
+	 	continueAfterRequest(body);
+ 	});
+
+ 	res.on('end', function(){
+ 		continueAfterRequest(body);
     });
 });
 
 // post the data
- post_req.write(post_data);
- post_req.end();
+ post_request.write(data);
+ post_request.end();
+
+ function parseHTML(bodyIn) {
+ 	var numSyllables = 0;
+ 	$ = cheerio.load(bodyIn);
+ 	$('td').each(function(i, element) {
+ 		if ($(this).text() === "Syllable Count") {
+ 			numSyllables = $(this).next().text();
+ 			return false;
+ 		}
+ 	});
+ 	return Number(numSyllables);
+ }
+
+ function continueAfterRequest(bodyIn) {
+ 	var numSyl = parseHTML(bodyIn);
+ 	console.log("sylCheck: " + sylCheck.getSyllables("actually"));
+ 	console.log("Test: " + numSyl);
+ }
+

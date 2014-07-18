@@ -14,11 +14,16 @@ The number of syllables that you hear when you pronounce a word is the same as t
 		one sound, so this word has only two vowels sounds and therefore, two syllables. 
 */
 
+// Wrapper function for syllables
+var getSyllables = function getSyllables(wordIn) {
+	return ingestWord(wordIn);
+}
+
 
 function ingestWord(wordIn) {
 	var word = wordIn.toLowerCase();
 	var syllables = word.match(/[aeiou]/g).length - countSilentVowels(word) - countDiphthongVowels(word);
-	console.log("Number of syllables for " + word + " is: " + syllables);
+	return syllables;
 } 
 
 function countSilentVowels(wordIn) {
@@ -39,8 +44,8 @@ function countSilentVowels(wordIn) {
 function countDiphthongVowels(wordIn) {
 	var sylSubtract = 0;
 	// List compiled from Wikipedia
-	if (wordIn.test("air")) sylSubtract++;
-	if (wordIn.test("ure")) sylSubtract++;
+	if (/[a][i][r]/.test(wordIn)) sylSubtract++;
+	if ((/[u][r][e]/).test)wordIn)) sylSubtract++;
 	if (wordIn.test("ewe")) sylSubtract++;
 	if (wordIn.test("are")) sylSubtract++;
 	if (wordIn.test("ere")) sylSubtract++;
@@ -50,3 +55,12 @@ function countDiphthongVowels(wordIn) {
 	if (wordIn.test("ure")) sylSubtract++;
 	return sylSubtract;
 }
+
+
+
+
+module.exports.getSyllables = getSyllables;
+
+
+
+
