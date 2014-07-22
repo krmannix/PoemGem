@@ -1,6 +1,8 @@
 // Initialize html parser and HTTP request modules
 var request = require('request');
 var cheerio = require('cheerio');
+var sylCounter = require('../js/syllableCounter.js');
+var Promise = require('bluebird');
 var Parse = require('parse').Parse;
 Parse.initialize("xVGwbfMCJHMeWgDDF8F7kjl82tqI7nISHMEkST9p", "dhKnIYqkzvCFC7mZ5qCCLFCqJNDACWE3UXph7tM4");
 
@@ -68,14 +70,22 @@ function goToLinks(links, bodyArray) {
 		});
 	} else {
 		for (var t = 0; t < bodyArray.length; t++) {
-			scrapeLyrics(bodyArray[t]);
+			createMapOneDegree(scrapeLyrics(bodyArray[t]));
 		}
-		createMapOneDegree(allLines); // Now that we've concatenated all lines, create a map out of these
+		//createMapOneDegree(allLines); // Now that we've concatenated all lines, create a map out of these
+	}
+}
+
+function createAllMaps(bodyArray) {
+	for (var i = 0; i < bodyArray.length; i++) {
+		createMapOneDegree(scrapeLyrics(bodyArray[i]));
+		setTimeout(function() {}, 3000);
 	}
 }
 
 // Grab lyrics for a song 
 function scrapeLyrics(body) {
+	var songLines = [];
 	$ = cheerio.load(body);
 	var lyricObject = $(".lyrics > p").find("a");
 
@@ -86,10 +96,11 @@ function scrapeLyrics(body) {
 
 				// Remove extraneous characters and ensure that line is not blank, then add to array
 				var line = lyricObject[j].children[k].data.replace(/\[.*\]|\"|\,|\r?\n|\r/g, "").toLowerCase();
-				if (!(line === "")) allLines.push(line);
+				if (!(line === "")) songLines.push(line);
 			}
 		}
 	}
+	return songLines;
 }
 
 // This function will return an artists name down to a form in which urls can take
@@ -109,7 +120,7 @@ function createMapOneDegree(linkArray) {
 		for (var k = 0; k < wordsInLine.length - 1; k++) { // Go through each word in thisline, except for the last one (since it has no next word)
 
 			if (JSONwords.allWords.length == 0) { // Initialize wordsInLine with first word
-				JSONwords.allWords.push({"currentWord" : wordsInLine[k], "nextWords": []});
+				JSONwords.allWords.push({"currentWord" : wordsInLine[k], "currentSyllable": sylCounter.getSyllables(wordsInLine[k]),"nextWords": []});
 			} 
 
 			var doesCurrentWordAlreadyExist = false;
@@ -126,7 +137,7 @@ function createMapOneDegree(linkArray) {
 						}
 					}
 					if (!doesNextWordAlreadyExist) { // If this is a new next word for the current word in JSONwords, initialize and push it
-						JSONwords.allWords[j].nextWords.push({ "word": wordsInLine[k+1], "count": 1});
+						JSONwords.allWords[j].nextWords.push({ "word": wordsInLine[k+1], "nextSyllable": sylCounter.getSyllables(wordsInLine[k+1]), "count": 1});
 						// push to JSONwords.nextWords
 					}
 					break;
@@ -135,8 +146,8 @@ function createMapOneDegree(linkArray) {
 			// If this word is totally new to the JSONwords array, create it and initialize array for it's next words with current next word
 			if (!doesCurrentWordAlreadyExist) {
 				var nextWords = [];
-				nextWords.push({"word": wordsInLine[k+1], "count" : 1});
-				JSONwords.allWords.push({"currentWord" : wordsInLine[k], "nextWords": nextWords});
+				nextWords.push({"word": wordsInLine[k+1], "nextSyllable": sylCounter.getSyllables(wordsInLine[k+1]), "count" : 1});
+				JSONwords.allWords.push({"currentWord" : wordsInLine[k], "currentSyllable": sylCounter.getSyllables(wordsInLine[k]), "nextWords": nextWords});
 			}
 		}
 	}
@@ -145,9 +156,11 @@ function createMapOneDegree(linkArray) {
 			console.log(value);
 		},
 		error: function(error) {
-			console.log("Error in Parse: " + error);
+			console.log("Error in Parse: " + error.message);
 		}
 	});
+	console.log("About to return from map " + linkArray[0]);
+	return true;
 }
 
 
@@ -157,7 +170,9 @@ function createMapOneDegree(linkArray) {
  *
  *===================*/
 
+
 runArtistScript("Lil Wayne");
+
 
 
 

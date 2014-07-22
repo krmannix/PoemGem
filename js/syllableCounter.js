@@ -24,7 +24,7 @@ function ingestWord(wordIn) {
 	var word = wordIn.toLowerCase();
 	var vowelMatches = 0;
 	if (word.match(/[aeiou]/g)) vowelMatches = word.match(/[aeiou]/g).length;
-	var syllables = vowelMatches + countYs(word) - countSilentVowels(word) - countDiphthongVowels(word);
+	var syllables = vowelMatches + countYs(word) - countSilentVowels(word) - countDiphthongVowels(word) + countExceptions(word);
 	if (syllables === 0) syllables = 1;
 	return syllables;
 } 
@@ -34,6 +34,21 @@ function countYs(wordIn) {
 	if (wordIn.slice(-2).match(/[^aeiou][y]/)) addY++;
 	if (wordIn.match(/[^aeiou][y][^aeiou]/)) addY += wordIn.match(/[^aeiou][y][^aeiou]/).length;
 	return addY;
+}
+
+function countExceptions(wordIn) {
+	var sylAdd = 0;
+	for (var i = 0; i < wordIn - 2; i++) {
+		if (sylAdd[i] === "i" && sylAdd[i+1] === "o") {
+			if ((sylAdd[i-1] === "t" && sylAdd[i+2] === "n") || (sylAdd[i+2] === "u" && sylAdd[i+3] === "s")) {
+			 // Do nothing
+			} else {
+				sylAdd++;
+			}
+		} 
+		if (sylAdd[i] === "i" && sylAdd === "u") sylAdd++;
+	}
+	return sylAdd;
 }
 
 function countSilentVowels(wordIn) {
@@ -57,13 +72,16 @@ function countDiphthongVowels(wordIn) {
 	if ((/[a][i][r]/).test(wordIn)) sylSubtract++;
 	if ((/[u][r][e]/).test(wordIn)) sylSubtract++;
 	if ((/[e][w][e]/).test(wordIn)) sylSubtract++;
-//	if ((/[a][r][e]/).test(wordIn)) sylSubtract++;
+	if ((/[a][n][e]/).test(wordIn)) sylSubtract++;
 	if ((/[e][r][e]/).test(wordIn)) sylSubtract++;
 	if ((/[e][a][r]/).test(wordIn)) sylSubtract++;
-	if ((/[a][i][r]/).test(wordIn)) sylSubtract++;
 	if ((/[o][r][e]/).test(wordIn)) sylSubtract++;
 	if ((/[u][r][e]/).test(wordIn)) sylSubtract++;
 	if ((/[i][k][e]/).test(wordIn)) sylSubtract++;
+	if ((/[a][t][e]/).test(wordIn)) sylSubtract++;
+	if ((/[a][p][e]/).test(wordIn)) sylSubtract++;
+	if ((/[a][r][e]/).test(wordIn)) sylSubtract++;
+	if ((/[o][m][e]/).test(wordIn)) sylSubtract++;
 	return sylSubtract;
 }
 

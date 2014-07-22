@@ -12,46 +12,19 @@ Parse.Cloud.define("checkForNewArtist", function(request, response) {
 	});
 });
 
-function addContentToDB(currentword, nextword, count, response) {
+function saveWords(words) {
+
+}
+
+function createWord(currentword, nextword, count, syllable, nextsyllable) {
 	var Word = Parse.Object.extend("rapWord1D"); // In future, have reqest with this value
-	var query = new Parse.Query("rapWord1D");
-	query.equalTo("word", currentword);
-	query.equalTo("nextword", nextword);
-	var wordInDB;
-	console.log("Current Word: " + currentword + " next word: " + nextword);
-	query.find({
-		success: function(results) {
-			if (results.length > 0) {
-				wordInDB = results[0];
-				wordInDB.set("count", wordInDB.get("count") + count);
-				// Need to update object
-			} else {
-				wordInDB = new Word();
-				wordInDB.set("word", currentword);
-				wordInDB.set("nextword", nextword);
-				wordInDB.set("count", count);
-			}
-			wordInDB.save(null, {
-				success: function() {
-					console.log("This object got saved: " + currentword + " with " + nextword);
-					if (response != null) {
-						console.log("Last item, say response is success");
-						response.success("Uploaded all programs.");
-					}
-				},
-				error: function() {
-					console.log("Theres an error.");
-					if (response != null) {
-						console.log("Should tell response there's an error");
-						response.error("Uh-oh. Look into this.");
-					}
-				}
-			});
-		},
-		error: function(error) {
-			console.log(error.message);
-		}
-	});
+	var wordInDB = new Word();
+	wordInDB.set("word", currentword);
+	wordInDB.set("syllable", syllable);
+	wordInDB.set("nextword", nextword);
+	wordInDB.set("syllableNext", nextsyllable);
+	wordInDB.set("count", count);
+	return wordInDB;
 }
 
 Parse.Cloud.define("sendMapToDatabase", function(request, response) {
@@ -75,21 +48,33 @@ Parse.Cloud.define("sendMapToDatabase", function(request, response) {
 				}
 				artist.set("words", wordCount);
 				artist.save(null, {
-					success: function() {
-						// Go through all word -> nextword combinations, and on last one submit response to be successful. 
+					success: function(results) {
+						// Go through all word -> nextword combinations, and on last one submit response to be successful.
+						var allWords = []; 
 						for (var i = 0; i < body.allWords.length; i++) {
 							for (var j = 0; j < body.allWords[i].nextWords.length; j++) {
 								if (i === body.allWords.length - 1 && j === body.allWords[i].nextWords.length - 1) {
-									addContentToDB(body.allWords[i].currentWord, 
-										body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count, response);
+									allWords.push(createWord(body.allWords[i].currentWord, 
+										body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count, 
+										body.allWords[i].nextWords[j].nextSyllable, body.allWords[i].currentSyllable));
+									Parse.Object.saveAll(allWords, {
+										success: function(list) {
+											response.success(true);
+										}, 
+										error: function(error) {
+											response.error(error.message);
+										}
+									});
 								} else {
-									addContentToDB(body.allWords[i].currentWord, 
-										body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count, null);
+									allWords.push(createWord(body.allWords[i].currentWord, 
+										body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count, 
+										body.allWords[i].nextWords[j].nextSyllable, body.allWords[i].currentSyllable));
 								}
 							}
 						}
 					},
-					error: function() {
+					error: function(error) {
+						console.log(error);
 					}
 				});
 			} else {
@@ -99,21 +84,33 @@ Parse.Cloud.define("sendMapToDatabase", function(request, response) {
 				artist.set("words", body.allWords.length);
 				artist.set("artist", artistName);
 				artist.save(null, {
-					success: function() {
-						// Go through all word -> nextword combinations, and on last one submit response to be successful. 
+					success: function(results) {
+						// Go through all word -> nextword combinations, and on last one submit response to be successful.
+						var allWords = []; 
 						for (var i = 0; i < body.allWords.length; i++) {
 							for (var j = 0; j < body.allWords[i].nextWords.length; j++) {
 								if (i === body.allWords.length - 1 && j === body.allWords[i].nextWords.length - 1) {
-									addContentToDB(body.allWords[i].currentWord, 
-										body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count, response);
+									allWords.push(createWord(body.allWords[i].currentWord, 
+										body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count, 
+										body.allWords[i].nextWords[j].nextSyllable, body.allWords[i].currentSyllable));
+									Parse.Object.saveAll(allWords, {
+										success: function(list) {
+											response.success(true);
+										}, 
+										error: function(error) {
+											response.error(error.message);
+										}
+									});
 								} else {
-									addContentToDB(body.allWords[i].currentWord, 
-										body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count, null);
+									allWords.push(createWord(body.allWords[i].currentWord, 
+										body.allWords[i].nextWords[j].word, body.allWords[i].nextWords[j].count, 
+										body.allWords[i].nextWords[j].nextSyllable, body.allWords[i].currentSyllable));
 								}
 							}
 						}
 					},
-					error: function() {
+					error: function(error) {
+						console.log(error);
 					}
 				});
 			}
