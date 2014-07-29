@@ -1,3 +1,102 @@
+Parse.Cloud.job("minimizeDB", function(request, status) {
+	Parse.Cloud.useMasterKey();
+	var queryMain = new Parse.Query("rapWord1D");
+	queryMain.each(function(word) {
+		var query = new Parse.Query("rapWord1D");
+		query.equalTo("word", word.get("word"));
+		query.equalTo("nextword", word.get("nextword"));
+		query.find({
+			success: function(results) {
+				word.set("count", word.get("count") + results.length);
+				// Now delete all the words
+				deleteWords(results);
+				word.save(); // Not sure if word will be involved in query, so we should save it
+			}
+		});
+	}).then(function() {
+		status.success("Minimized Database"); // Get size of db
+	}, function(error) {
+		status.error("Something wrong: " + error.message);
+	});
+});
+
+// Get rid of any unnessecary characters that may have snuck in during ingestion
+Parse.Cloud.job("cleanWords", function(request, status) {
+	Parse.Cloud.useMasterKey();
+	var queryMain = new Parse.Query("rapWord1D");
+	queryMain.each(function(word) {
+		var cleanWord = word.get("word").replace(/\W+/g, "");
+		var cleanNextWord = word.get("nextword").replace(/\W+/g, "");
+		if (cleanWord !== word.get("word") || cleanNextWord !== word.get("nextword")) {
+			if (cleanWord === "" || cleanNextWord === "") {
+				word.destroy();
+			} else {
+				word.set("word", cleanWord);
+				word.set("nextword", cleanNextWord);
+				word.save();
+			}
+		}
+	}).then(function() {
+		status.success("Clean DB");
+	}, function(error) {
+		status.error("Something went wrong cleaning: " + error.message);
+	});
+});
+
+// Recrusive JS for deleting words
+function deleteWords(words) {
+	if (words.length > 0) {
+		words.pop().destroy({
+			success: function(word) {
+				deleteWords(words);
+			},
+			error: function(word, error) {
+				console.log("Error deleting the word (" + word.get("word") + "): " + error.message);
+			}
+		})
+	}
+}
+
+Parse.Cloud.define("getSentence", function(request, response) {
+	var numWords = request.numWords;
+	if (typeof numWords === "undefined") response.error("Didn't tell how many words");
+	var returnedSentence = "";
+
+
+
+});
+
+function chooseNextWord(word, sentence) {
+	var query = new Parse.Query("rapWord1D");
+	query.equalTo("word", word.get("nextword"));
+	query.find({
+		success: function(results) {
+			var total = 0;
+			var words = [];
+			for (var i = 0; i < results.length; i++) {
+				words.push({
+					"word":results[i].get("nextword"),
+					"count":results[i].get("count")
+				});
+				total += results[i].get("count");
+			}
+			var randNum = Math.floor(Math.random()*total);
+			var nextWord, cumSum = 0;
+			for (var j = 0; j < words.length; j++) {
+				cumSum += words[j].count;
+				if (randNum < cumSum) {
+					nextWord = words[j];
+					break;
+				}
+			}
+			chooseNextWord(nextWord, " " + nextWord);
+		}, 
+		error: function(error) {
+			console.log("Parse Error finding word! " + error.message);
+		}
+	});
+}
+
 Parse.Cloud.define("checkForNewArtist", function(request, response) {
 	var query = new Parse.Query("artists");
 	query.equalTo("artist", request.params.artist);
@@ -12,9 +111,6 @@ Parse.Cloud.define("checkForNewArtist", function(request, response) {
 	});
 });
 
-function saveWords(words) {
-
-}
 
 function createWord(currentword, nextword, count, syllable, nextsyllable) {
 	var Word = Parse.Object.extend("rapWord1D"); // In future, have reqest with this value

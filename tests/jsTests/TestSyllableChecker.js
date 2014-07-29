@@ -4,7 +4,6 @@ var request = require('request');
 var Promise = require('bluebird');
 var fs = require('fs');
 var path = require('path');
-var Jetty = require("jetty");
 
 // All words we're going to test
 var words = [];
