@@ -170,8 +170,12 @@ function createMapOneDegree(linkArray) {
  *
  *===================*/
 
-
-runArtistScript("Lil Wayne");
+//runArtistScript("Lil Wayne");
+//runArtistScript("Jay-Z");
+runArtistScript("Drake");
+//runArtistScript("Kendrick");
+//runArtistScript("Jay-Z");
+//runArtistScript("Jay-Z");
 
 
 
